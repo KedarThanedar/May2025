@@ -1,4 +1,4 @@
-// @ts-check
+// @ts-nocheck
 import { test, chromium, expect } from '@playwright/test';
 import { exec } from 'child_process';
 
@@ -16,5 +16,64 @@ test('Read Credit Card', async ({ }) => {
   await newPage.waitForTimeout(2000);
   expect(cardNumber).toBeVisible();  
   const cardNumberRaw = await cardNumber.textContent();
-  console.log(cardNumberRaw);
+  // @ts-ignore
+  const cardNumberValue = cardNumberRaw.split(':-')[1].trim();
+  console.log(cardNumberValue);
+  const cvvField = newPage.locator("//h4[contains(text(),'CVV')]");
+  const cvvRaw = await cvvField.textContent();
+  const cvvValue = cvvRaw.split(':-')[1].trim();   
+  console.log(cvvValue);
+  const expiryField = newPage.locator("//h4[contains(text(),'Exp')]");
+  const expiryRaw = await expiryField.textContent();
+  const expiryValue = expiryRaw.split(':-')[1].trim();
+  console.log(expiryValue);
+  const expiryDate = expiryValue.split('/');
+  const month = expiryDate[0].trim();
+  const year = expiryDate[1].trim();
+  const cartLink = newPage.locator("//nav/a[text()='Cart']");
+  expect(cartLink).toBeVisible();
+  await cartLink.click();
+  await page.waitForTimeout(2000);
+  const quantityField = page.locator("//div/select[@name='quantity']");
+  await quantityField.selectOption('2');
+  const buyNOwButton = page.locator("//input[@type='submit']");
+  expect(buyNOwButton).toBeVisible();
+  await buyNOwButton.click();
+  await page.waitForTimeout(2000);
+  const headerField = page.locator("//h2[text()='Payment Process']");
+  expect(headerField).toBeVisible();
+  const cardNumberInput = page.locator("//input[@name='card_nmuber']");
+  await cardNumberInput.fill(cardNumberValue);
+  const cvvInput = page.locator("//input[@name='cvv_code']");
+  await cvvInput.fill(cvvValue);
+  const monthInput = page.locator("//select[@name='month']");
+  await monthInput.selectOption(month);
+  const yearInput = page.locator("//select[@name='year']");
+  await yearInput.selectOption(year);
+  const payButton = page.locator("//input[@type='submit']");
+  expect(payButton).toBeVisible();
+  await payButton.click();
+  await page.waitForTimeout(2000);
+  const confirmationHeader = page.locator("//div/h2");
+  expect(confirmationHeader).toBeVisible();
+  const confirmationText = await confirmationHeader.textContent();
+  expect(confirmationText).toContain('Payment successfull!'); 
+  const orderIdField = page.locator("//table/tbody/tr/td/h3");
+  expect(orderIdField).toBeVisible();
+  const orderIdElement = page.locator("//table/tbody/tr/td/h3[strong='Order ID']/../following-sibling::*");
+  const orderIdValue = await orderIdElement.textContent();
+  const ccLimitLink = page.locator("//nav/a[text()='Check Credit Card Limit']")
+  ccLimitLink.click();
+  await page.waitForTimeout(2000);
+  const headerField1=page.locator("//h2");
+  expect(headerField1).toBeVisible();
+  const headerText = await headerField1.textContent();
+  expect(headerText).toContain('Check Credit Balance');
+  const cardInput = page.locator("//input[@name='card_nmuber']");
+  await cardInput.fill(cardNumberValue);
+  const submitButton = page.locator("//input[@type='submit']");
+  expect(submitButton).toBeVisible();
+  await submitButton.click();
+  await page.waitForTimeout(2000);
+
 });
