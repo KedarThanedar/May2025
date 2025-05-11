@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { test, chromium, expect } from '@playwright/test';
-import { exec } from 'child_process';
+//import { exec } from 'child_process';
 
 test('Read Credit Card', async ({ }) => {
   let browser = await chromium.launch({headless: false});
@@ -11,26 +10,28 @@ test('Read Credit Card', async ({ }) => {
   const cardLink = await page.locator("//nav/a[text()='Generate Card Number']");
   expect(cardLink).toBeVisible();
   await cardLink.click();
-  const newPage = await context.waitForEvent('page');
-  const cardNumber = await newPage.locator("//h4[contains(text(),'Card')]");
-  await newPage.waitForTimeout(2000);
+  const launchedPage = await context.waitForEvent('page');
+  const cardNumber = await launchedPage.locator("//h4[contains(text(),'Card')]");
+  await launchedPage.waitForTimeout(2000);
   expect(cardNumber).toBeVisible();  
-  const cardNumberRaw = await cardNumber.textContent();
-  // @ts-ignore
+  const cardNumberRaw = await cardNumber.textContent();  
   const cardNumberValue = cardNumberRaw.split(':-')[1].trim();
   console.log(cardNumberValue);
-  const cvvField = newPage.locator("//h4[contains(text(),'CVV')]");
+  const cvvField = launchedPage.locator("//h4[contains(text(),'CVV')]");
   const cvvRaw = await cvvField.textContent();
   const cvvValue = cvvRaw.split(':-')[1].trim();   
   console.log(cvvValue);
-  const expiryField = newPage.locator("//h4[contains(text(),'Exp')]");
+  const expiryField = launchedPage.locator("//h4[contains(text(),'Exp')]");
   const expiryRaw = await expiryField.textContent();
   const expiryValue = expiryRaw.split(':-')[1].trim();
   console.log(expiryValue);
   const expiryDate = expiryValue.split('/');
   const month = expiryDate[0].trim();
   const year = expiryDate[1].trim();
-  const cartLink = newPage.locator("//nav/a[text()='Cart']");
+  launchedPage.close();
+  
+  await page.waitForTimeout(2000);  
+  const cartLink = page.locator("//nav/a[text()='Cart']");
   expect(cartLink).toBeVisible();
   await cartLink.click();
   await page.waitForTimeout(2000);
@@ -58,7 +59,7 @@ test('Read Credit Card', async ({ }) => {
   expect(confirmationHeader).toBeVisible();
   const confirmationText = await confirmationHeader.textContent();
   expect(confirmationText).toContain('Payment successfull!'); 
-  const orderIdField = page.locator("//table/tbody/tr/td/h3");
+  const orderIdField = page.locator("//table/tbody/tr/td/h3[strong='Order ID']");
   expect(orderIdField).toBeVisible();
   const orderIdElement = page.locator("//table/tbody/tr/td/h3[strong='Order ID']/../following-sibling::*");
   const orderIdValue = await orderIdElement.textContent();
@@ -75,5 +76,31 @@ test('Read Credit Card', async ({ }) => {
   expect(submitButton).toBeVisible();
   await submitButton.click();
   await page.waitForTimeout(2000);
-
+  const tableRow = await page.$$("//table/tbody/tr/td");
+  const tableHeader = await page.$$("//table/thead/tr/th");  
+  const headerList=[];
+  for(const headerElement of tableHeader){
+    
+    const thText = await headerElement.textContent();
+    console.log(thText);
+    headerList.push(thText);    
+  }
+  let cardNumberIndex = headerList.indexOf('Card Number');
+  console.log(cardNumberIndex);
+  const cardNumberRetrieved = await tableRow[cardNumberIndex].textContent();
+  console.log(cardNumberRetrieved);
+  expect(cardNumberRetrieved).toEqual(cardNumberValue);
+  const monthRetrieved = await tableRow[headerList.indexOf('Month')].textContent();
+  console.log(monthRetrieved);
+  expect(parseInt(monthRetrieved)).toEqual(parseInt(month,10));
+  const yearRetrieved = await tableRow[headerList.indexOf('Year')].textContent();
+  console.log(yearRetrieved);
+  expect(yearRetrieved).toEqual(year);
+  const cvvRetrieved = await tableRow[headerList.indexOf('CVV')].textContent();
+  console.log(cvvRetrieved);
+  expect(cvvRetrieved).toEqual(cvvValue);
+  const orderIdRetrieved = await tableRow[headerList.indexOf('Order Id')].textContent();
+  console.log(orderIdRetrieved);
+  expect(orderIdRetrieved).toEqual(orderIdValue);
+  
 });
